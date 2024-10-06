@@ -6,7 +6,15 @@ const path = require('path');
 const createServer = (port) => {
     const app = express();
     const server = http.createServer(app);
-    const io = socketIo(server);
+
+    const io = socketIo(server, {
+        cors: {
+            origin: "*",
+            methods: ["GET", "POST"],
+            allowedHeaders: ["my-custom-header"],
+            credentials: true
+        }
+    });
 
     app.use(express.static(path.join(__dirname, 'public')));
 
@@ -23,14 +31,17 @@ const createServer = (port) => {
         });
 
         socket.on('chat message', (data) => {
-            console.log(data);
+            console.log(`Mensagem recebida: ${JSON.stringify(data)}`);
+
             io.to(data.servidor).emit('chat message', data);
         });
+
 
         socket.on('disconnect', () => {
             console.log(`Usuário desconectado do servidor na porta ${port}`);
         });
     });
+
 
     server.listen(port, () => {
         console.log(`Servidor rodando na porta ${port}`);
@@ -40,4 +51,4 @@ const createServer = (port) => {
 createServer(3000);
 createServer(4000);
 createServer(5000);
-createServer(6000);
+createServer(5050);

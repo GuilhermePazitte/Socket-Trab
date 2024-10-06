@@ -31,9 +31,11 @@
     <script>
         let socket;
         let currentPort = 3000;
+        let isConnected = false;
 
         function connectSocket() {
             const servidor = document.getElementById('servidor').value;
+
 
             if (socket) {
                 socket.disconnect();
@@ -41,7 +43,7 @@
 
             currentPort = servidor === 'Server1' ? 3000 :
                           servidor === 'Server2' ? 4000 :
-                          servidor === 'Server3' ? 5000 : 6000;
+                          servidor === 'Server3' ? 5000 : 5050;
 
             socket = io(`http://localhost:${currentPort}`);
 
@@ -51,17 +53,24 @@
 
             document.getElementById('input').disabled = false;
             document.getElementById('sendButton').disabled = false;
+            isConnected = true;
 
             socket.on('chat message', function(data) {
                 addMessage(`<b>[${data.servidor}][${data.time}] ${data.user}:</b> ${data.message}`);
             });
 
             addMessage(`<b>Você se conectou ao ${servidor} na porta ${currentPort}</b>`);
+
+            socket.on('connect_error', (error) => {
+                alert(`Erro ao conectar ao servidor: ${error.message}`);
+                isConnected = false;
+            });
         }
 
         document.getElementById('servidor').addEventListener('change', () => {
             if (socket) {
                 socket.disconnect();
+                isConnected = false;
                 addMessage('Você alterou o servidor. Por favor, clique em "Conectar" para se reconectar ao novo servidor.');
             }
 
@@ -71,9 +80,14 @@
 
         document.getElementById('connectButton').addEventListener('click', () => {
             const username = document.getElementById('username').value;
-
+            
             if (!username) {
                 alert("Por favor, insira um nickname antes de se conectar.");
+                return;
+            }
+
+            if (isConnected) {
+                alert("Você já está conectado. Se deseja mudar de servidor, selecione um novo servidor.");
                 return;
             }
 
@@ -81,28 +95,26 @@
         });
 
         document.getElementById('form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const message = document.getElementById('input').value;
-    const servidor = document.getElementById('servidor').value;
-    const username = document.getElementById('username').value;
-    const currentTime = new Date().toLocaleTimeString();
+            e.preventDefault();
+            
+            const message = document.getElementById('input').value;
+            const servidor = document.getElementById('servidor').value;
+            const username = document.getElementById('username').value;
+            const currentTime = new Date().toLocaleTimeString();
 
-    socket.emit('chat message', { servidor, user: username, message, time: currentTime });
-    
+            if (socket && isConnected) {
+                socket.emit('chat message', { servidor, user: username, message, time: currentTime });
+                document.getElementById('input').value = "";
+            } else {
+                alert("Você não está conectado a nenhum servidor.");
+            }
+        });
 
-    document.getElementById('input').value = "";
-});
-
-socket.on('chat message', function(data) {
-    addMessage(`<b>[${data.servidor}][${data.time}] ${data.user}:</b> ${data.message}`);
-});
-
-function addMessage(message) {
-    const li = document.createElement('li');
-    li.innerHTML = message;
-    document.getElementById('messages').appendChild(li);
-}
+        function addMessage(message) {
+            const li = document.createElement('li');
+            li.innerHTML = message;
+            document.getElementById('messages').appendChild(li);
+        }
     </script>
 </body>
 </html>
