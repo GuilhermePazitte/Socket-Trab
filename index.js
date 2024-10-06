@@ -1,32 +1,43 @@
-const express = require('express')
-const socketIo = require('socket.io')
-const http = require('http')
-const path = require('path')
+const express = require('express');
+const socketIo = require('socket.io');
+const http = require('http');
+const path = require('path');
 
-const app = express();
-const server = http.createServer(app);
-const io = socketIo(server)
+const createServer = (port) => {
+    const app = express();
+    const server = http.createServer(app);
+    const io = socketIo(server);
 
-app.use(express.static(path.join(__dirname, 'public')));
+    app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/', (req,res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'))
-})
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'servidor.html'));
+    });
 
-io.on('connection', (socket) =>{
-    console.log('Novo usuário conectado!')
+    io.on('connection', (socket) => {
+        console.log(`Novo usuário conectado no servidor na porta ${port}!`);
 
-    socket.on('chat message', (data) =>{
-        console.log(data)
-        io.emit('chat message', {user: data.user, message: data.message, time: data.time});
-        
-    })
+        socket.on('join room', (room) => {
+            socket.join(room);
+            console.log(`Usuário entrou na sala: ${room}`);
+        });
 
-    socket.on('disconnect', () => {
-        console.log('Usuário desconectado');
-    })
-})
+        socket.on('chat message', (data) => {
+            console.log(data);
+            io.to(data.servidor).emit('chat message', data);
+        });
 
-server.listen(3000, () =>{
-    console.log('Servidor rodando na porta 3000')
-})
+        socket.on('disconnect', () => {
+            console.log(`Usuário desconectado do servidor na porta ${port}`);
+        });
+    });
+
+    server.listen(port, () => {
+        console.log(`Servidor rodando na porta ${port}`);
+    });
+};
+
+createServer(3000);
+createServer(4000);
+createServer(5000);
+createServer(6000);
